@@ -48,9 +48,13 @@ jobs:
         run: gcloud builds submit --tag us-central1-docker.pkg.dev/notely-451204/notely-ar-repo/notely:latest .
 
       #  Step 5: Run Database Migrations Before Deploying
-      - name: Run Database Migrations
+      - name: Run Database Migrations (if exists)
         run: |
-          goose -dir migrations postgres "$DATABASE_URL" up
+          if [ -d "migrations" ]; then
+            goose -dir migrations postgres "$DATABASE_URL" up
+          else
+            echo "No migrations directory found. Skipping migrations."
+          fi
 
       #  Step 6: Deploy to Cloud Run
       - name: Deploy to Cloud Run
