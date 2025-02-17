@@ -35,4 +35,4 @@ jobs:
           go-version: "1.23.0"
 
       - name: Run Go Format Check
-        run: gofmt -d .
+        run: test -z "$(go fmt ./...)"
