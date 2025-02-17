@@ -20,3 +20,18 @@ jobs:
 
       - name: Build Production App
         run: scripts/buildprod.sh
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: notely-451204
+
+      - name: Build and Push Docker Image to Artifact Registry
+        run: |
+          gcloud auth configure-docker us-central1-docker.pkg.dev
+          gcloud builds submit --tag us-central1-docker.pkg.dev/notely-451204/notely-ar-repo/notely:latest .
