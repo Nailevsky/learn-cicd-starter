@@ -5,8 +5,35 @@ on:
     branches: [main]
 
 jobs:
+  migrate-db:
+    name: Run Migrations
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install Goose (Database Migration Tool)
+        run: go install github.com/pressly/goose/v3/cmd/goose@latest
+
+      - name: Make migrateup.sh Executable
+        run: chmod +x scripts/migrateup.sh
+
+      - name: Debug DATABASE_URL
+        run: echo "Database URL: $DATABASE_URL"
+
+      - name: Check Migrations Directory
+        run: ls -l sql/schema || echo "Migrations directory is missing!"
+
+      - name: Run Database Migrations
+        run: ./scripts/migrateup.sh
+
   deploy:
     name: Deploy
+    needs: migrate-db  # Ensures migration runs before deployment
     runs-on: ubuntu-latest
 
     env:
@@ -21,38 +48,25 @@ jobs:
         with:
           go-version: "1.23.0"
 
-      #  Build the Go binary before adding it to the Docker image
       - name: Build Notely Binary
         run: go build -o notely .
 
-      #  Authenticate with GCP
       - name: Authenticate with GCP
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
-      #  Set up Google Cloud CLI
       - name: Set up gcloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: notely-451204
 
-      #  Configure Docker for Google Artifact Registry
       - name: Configure Docker to use Google Artifact Registry
         run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
-      #  Build & Push Docker Image (now with the built `notely` binary)
       - name: Build and Push Docker Image
         run: gcloud builds submit --tag us-central1-docker.pkg.dev/notely-451204/notely-ar-repo/notely:latest .
 
-      #  Run Database Migrations
-      - name: Install Goose (Database Migration Tool)
-        run: go install github.com/pressly/goose/v3/cmd/goose@latest
-
-      - name: Run Database Migrations
-        run: goose -dir sql/schema turso "$DATABASE_URL" up
-
-      #  Deploy to Cloud Run
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy notely \
@@ -60,4 +74,5 @@ jobs:
             --region us-central1 \
             --allow-unauthenticated \
             --project notely-451204 \
-            --max-instances=4
+            --max-instances=4 \
+            --set-env-vars DATABASE_URL=$DATABASE_URL
