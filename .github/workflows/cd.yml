@@ -23,7 +23,8 @@ jobs:
         run: chmod +x scripts/migrateup.sh
 
       - name: Debug DATABASE_URL
-        run: echo "Database URL: $DATABASE_URL"
+        run: |
+          echo "Database URL: $DATABASE_URL"
 
       - name: Check Migrations Directory
         run: ls -l sql/schema || echo "Migrations directory is missing!"
