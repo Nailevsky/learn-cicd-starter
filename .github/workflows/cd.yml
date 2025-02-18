@@ -50,7 +50,7 @@ jobs:
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
       - name: Run Database Migrations
-        run: goose -dir migrations sqlite "$DATABASE_URL" up
+        run: goose -dir sql/schema sqlite "$DATABASE_URL" up
 
       #  Deploy to Cloud Run
       - name: Deploy to Cloud Run
